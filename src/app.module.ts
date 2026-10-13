@@ -1,22 +1,12 @@
 import { Module, ValidationPipe } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
-import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { createAuth } from './lib/auth/auth';
 import { PrismaModule } from './lib/database/prisma.module';
-import { PrismaService } from './lib/database/prisma.service';
-import { UserModule } from './module/user/user.module';
+import { TaskModule } from './module/task/task.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    AuthModule.forRootAsync({
-      useFactory: (prisma: PrismaService) => ({ auth: createAuth(prisma) }),
-      inject: [PrismaService],
-    }),
-    UserModule,
-  ],
+  imports: [PrismaModule, TaskModule],
   controllers: [AppController],
   providers: [
     AppService,
