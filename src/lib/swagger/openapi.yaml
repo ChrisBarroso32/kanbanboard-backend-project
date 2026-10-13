@@ -1,0 +1,283 @@
+openapi: 3.0.3
+info:
+  title: Kanban Board API
+  version: 0.0.1
+  description: |
+    API REST del tablero Kanban. El tablero se basa en estados: cada valor de
+    `TaskStatus` es una columna y `orderIndex` es la posición de la tarea dentro de su columna.
+
+    - `orderIndex` lo asigna el servidor al crear (final de la columna).
+    - `status` y `orderIndex` solo cambian mediante `PATCH /tasks/{id}/move`.
+    - Los cuerpos rechazan propiedades no declaradas (400).
+
+servers:
+  - url: /api
+    description: Servidor actual
+
+tags:
+  - name: Tasks
+    description: Gestión y ordenamiento de tareas del tablero
+
+paths:
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: Listar tareas
+      description: Devuelve las tareas ordenadas por `status` y luego por `orderIndex`.
+      operationId: findAllTasks
+      parameters:
+        - name: priority
+          in: query
+          required: false
+          description: Filtra por prioridad.
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+      responses:
+        '200':
+          description: Lista de tareas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    post:
+      tags: [Tasks]
+      summary: Crear tarea
+      description: Crea la tarea al final de la columna indicada (por defecto `BACKLOG`).
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskDto'
+            example:
+              title: Diseñar pantalla de login
+              description: Mockups en Figma para escritorio y móvil
+              status: BACKLOG
+              priority: HIGH
+      responses:
+        '201':
+          description: Tarea creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /tasks/{id}:
+    patch:
+      tags: [Tasks]
+      summary: Actualizar tarea
+      description: |
+        Actualiza título, descripción o prioridad. Para cambiar de columna o de
+        posición usa `PATCH /tasks/{id}/move`.
+      operationId: updateTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskDto'
+            example:
+              priority: URGENT
+      responses:
+        '200':
+          description: Tarea actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{id}/move:
+    patch:
+      tags: [Tasks]
+      summary: Mover tarea
+      description: |
+        Mueve la tarea a `status` en la posición `newOrderIndex` y reordena las
+        demás tareas para que ambas columnas queden contiguas. Si
+        `newOrderIndex` supera el tamaño de la columna destino, la tarea queda
+        al final.
+      operationId: moveTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveTaskDto'
+            example:
+              status: IN_PROGRESS
+              newOrderIndex: 0
+      responses:
+        '200':
+          description: Tarea movida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: UUID de la tarea
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    TaskStatus:
+      type: string
+      enum: [BACKLOG, IN_PROGRESS, REVIEW, DONE]
+
+    TaskPriority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, URGENT]
+
+    Task:
+      type: object
+      required: [id, title, description, status, priority, orderIndex, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3f1c2b9e-8a4d-4c6e-9b7a-2d5e6f7a8b9c
+        title:
+          type: string
+          maxLength: 255
+          example: Diseñar pantalla de login
+        description:
+          type: string
+          nullable: true
+          example: Mockups en Figma para escritorio y móvil
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        orderIndex:
+          type: integer
+          minimum: 0
+          example: 0
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateTaskDto:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 255
+        description:
+          type: string
+        status:
+          allOf:
+            - $ref: '#/components/schemas/TaskStatus'
+          default: BACKLOG
+        priority:
+          allOf:
+            - $ref: '#/components/schemas/TaskPriority'
+          default: MEDIUM
+
+    UpdateTaskDto:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 255
+        description:
+          type: string
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+
+    MoveTaskDto:
+      type: object
+      additionalProperties: false
+      required: [status, newOrderIndex]
+      properties:
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        newOrderIndex:
+          type: integer
+          minimum: 0
+
+    ErrorResponse:
+      type: object
+      required: [statusCode, message]
+      properties:
+        statusCode:
+          type: integer
+        message:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        error:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Validación fallida (cuerpo, query o UUID inválido)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 400
+            message:
+              - title must be longer than or equal to 3 characters
+            error: Bad Request
+    NotFound:
+      description: La tarea no existe
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 404
+            message: Task 3f1c2b9e-8a4d-4c6e-9b7a-2d5e6f7a8b9c not found
+            error: Not Found
+    Conflict:
+      description: El orden cambió por una escritura concurrente; reintenta la operación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 409
+            message: Task order changed concurrently, please retry
+            error: Conflict
