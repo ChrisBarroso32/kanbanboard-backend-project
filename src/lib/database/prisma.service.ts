@@ -17,6 +17,9 @@ export class PrismaService
 
   async onModuleInit() {
     await this.$connect();
+    // $connect does not open a pg connection with the driver adapter; this
+    // warms the pool so the first request does not pay the TLS handshake.
+    await this.$queryRaw`SELECT 1`;
   }
 
   async onModuleDestroy() {
