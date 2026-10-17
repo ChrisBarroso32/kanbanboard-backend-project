@@ -35,6 +35,13 @@ export class TaskService {
     return task;
   }
 
+  async remove(id: string): Promise<void> {
+    const task = await this.withConflictHandling(
+      this.taskRepository.delete(id),
+    );
+    if (!task) throw new NotFoundException(`Task ${id} not found`);
+  }
+
   private async findOrFail(id: string): Promise<Task> {
     const task = await this.taskRepository.findById(id);
     if (!task) throw new NotFoundException(`Task ${id} not found`);

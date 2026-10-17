@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -36,5 +39,11 @@ export class TaskController {
   @Patch(':id/move')
   move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MoveTaskDto) {
     return this.taskService.move(id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.taskService.remove(id);
   }
 }

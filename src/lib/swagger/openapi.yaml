@@ -102,6 +102,25 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+    delete:
+      tags: [Tasks]
+      summary: Eliminar tarea
+      description: |
+        Elimina la tarea y desplaza hacia arriba las tareas que estaban debajo
+        de ella en su columna, para que `orderIndex` siga siendo contiguo.
+      operationId: deleteTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '204':
+          description: Tarea eliminada (sin cuerpo)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
   /tasks/{id}/move:
     patch:
       tags: [Tasks]

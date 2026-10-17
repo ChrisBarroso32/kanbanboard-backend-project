@@ -104,4 +104,22 @@ export class TaskRepository {
       });
     }, TX_OPTIONS);
   }
+
+  /**
+   * Deletes a task and shifts the tasks below it up so its column stays
+   * contiguous. Returns null when the task does not exist.
+   */
+  delete(id: string): Promise<Task | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findUnique({ where: { id } });
+      if (!task) return null;
+
+      await tx.task.delete({ where: { id } });
+      await tx.task.updateMany({
+        where: { status: task.status, orderIndex: { gt: task.orderIndex } },
+        data: { orderIndex: { decrement: 1 } },
+      });
+      return task;
+    }, TX_OPTIONS);
+  }
 }
