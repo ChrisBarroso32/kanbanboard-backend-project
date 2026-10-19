@@ -74,6 +74,60 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
+  /tasks/archive:
+    post:
+      tags: [Tasks]
+      summary: Archivar tareas DONE
+      description: |
+        Mueve **todas** las tareas en `DONE` a la tabla de archivadas (conservan
+        su UUID) y las elimina del tablero. No lleva cuerpo y no es reversible.
+        Si no hay tareas en `DONE` responde `{ "archived": 0 }`.
+      operationId: archiveDoneTasks
+      responses:
+        '200':
+          description: Número de tareas archivadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchiveResult'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /tasks/archived:
+    get:
+      tags: [Tasks]
+      summary: Listar tareas archivadas
+      description: Devuelve las tareas archivadas, de la más reciente a la más antigua (`archivedAt`).
+      operationId: findArchivedTasks
+      responses:
+        '200':
+          description: Lista de tareas archivadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArchivedTask'
+
+  /tasks/archived/export:
+    get:
+      tags: [Tasks]
+      summary: Exportar tareas archivadas a Excel
+      description: |
+        Descarga una hoja de cálculo `.xlsx` con una fila por tarea archivada.
+        Si no hay ninguna, la hoja solo contiene el encabezado.
+      operationId: exportArchivedTasks
+      responses:
+        '200':
+          description: Archivo `archived-tasks.xlsx`
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
   /tasks/{id}:
     patch:
       tags: [Tasks]
@@ -214,6 +268,41 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    ArchivedTask:
+      type: object
+      required: [id, title, description, createdAt, updatedAt, archivedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3f1c2b9e-8a4d-4c6e-9b7a-2d5e6f7a8b9c
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        archivedAt:
+          type: string
+          format: date-time
+
+    ArchiveResult:
+      type: object
+      required: [archived]
+      properties:
+        archived:
+          type: integer
+          minimum: 0
+          example: 5
 
     CreateTaskDto:
       type: object

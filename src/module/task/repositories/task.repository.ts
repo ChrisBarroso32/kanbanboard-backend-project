@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, Task } from '../../generated/prisma/client';
-import { TaskPriority, TaskStatus } from '../../generated/prisma/enums';
-import { PrismaService } from '../../lib/database/prisma.service';
+import { Prisma, Task } from '../../../generated/prisma/client';
+import { TaskPriority, TaskStatus } from '../../../generated/prisma/enums';
+import { PrismaService } from '../../../lib/database/prisma.service';
+import { TX_OPTIONS } from '../../../lib/database/transaction.options';
 
 export type CreateTaskData = Pick<
   Prisma.TaskCreateInput,
@@ -11,16 +12,6 @@ export type UpdateTaskData = Pick<
   Prisma.TaskUpdateInput,
   'title' | 'description' | 'priority'
 >;
-
-// Reindexing reads then writes sibling rows; Serializable makes concurrent
-// moves fail (P2034) instead of leaving duplicated or missing indexes.
-// maxWait/timeout are above Prisma's defaults (2s/5s): with a remote database,
-// opening a new TLS connection can exceed 2s and fail with P2028.
-const TX_OPTIONS = {
-  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-  maxWait: 10_000,
-  timeout: 15_000,
-};
 
 @Injectable()
 export class TaskRepository {
