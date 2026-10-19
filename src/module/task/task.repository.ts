@@ -33,10 +33,6 @@ export class TaskRepository {
     });
   }
 
-  findById(id: string): Promise<Task | null> {
-    return this.prisma.task.findUnique({ where: { id } });
-  }
-
   /** Creates the task at the end of its status column. */
   create(data: CreateTaskData): Promise<Task> {
     return this.prisma.$transaction(async (tx) => {

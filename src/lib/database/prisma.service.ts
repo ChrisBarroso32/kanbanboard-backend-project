@@ -1,17 +1,25 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
+import { EnvironmentVariables } from '../config/env.validation';
 
 @Injectable()
 export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  constructor() {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) {
-      throw new Error('DATABASE_URL is not set');
-    }
+  // Explicit @Inject: prisma/seed.ts runs under tsx (esbuild), which does not
+  // emit decorator metadata, so type-based injection would resolve undefined.
+  constructor(
+    @Inject(ConfigService) config: ConfigService<EnvironmentVariables, true>,
+  ) {
+    const connectionString = config.get('DATABASE_URL', { infer: true });
     super({ adapter: new PrismaPg({ connectionString }) });
   }
 

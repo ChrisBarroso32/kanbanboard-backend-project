@@ -71,6 +71,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '409':
           $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
   /tasks/{id}:
     patch:
@@ -120,6 +122,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
   /tasks/{id}/move:
     patch:
@@ -155,6 +159,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
 components:
   parameters:
@@ -300,3 +306,13 @@ components:
             statusCode: 409
             message: Task order changed concurrently, please retry
             error: Conflict
+    ServiceUnavailable:
+      description: La transacción no pudo iniciar o excedió su tiempo límite; reintenta la operación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 503
+            message: Database is busy, please retry
+            error: Service Unavailable

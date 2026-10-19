@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma, Task } from '../../generated/prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -19,16 +20,15 @@ export class TaskService {
   }
 
   create(dto: CreateTaskDto): Promise<Task> {
-    return this.withConflictHandling(this.taskRepository.create(dto));
+    return this.withPrismaErrors(this.taskRepository.create(dto));
   }
 
-  async update(id: string, dto: UpdateTaskDto): Promise<Task> {
-    await this.findOrFail(id);
-    return this.taskRepository.update(id, dto);
+  update(id: string, dto: UpdateTaskDto): Promise<Task> {
+    return this.withPrismaErrors(this.taskRepository.update(id, dto), id);
   }
 
   async move(id: string, dto: MoveTaskDto): Promise<Task> {
-    const task = await this.withConflictHandling(
+    const task = await this.withPrismaErrors(
       this.taskRepository.move(id, dto.status, dto.newOrderIndex),
     );
     if (!task) throw new NotFoundException(`Task ${id} not found`);
@@ -36,30 +36,33 @@ export class TaskService {
   }
 
   async remove(id: string): Promise<void> {
-    const task = await this.withConflictHandling(
-      this.taskRepository.delete(id),
-    );
+    const task = await this.withPrismaErrors(this.taskRepository.delete(id));
     if (!task) throw new NotFoundException(`Task ${id} not found`);
   }
 
-  private async findOrFail(id: string): Promise<Task> {
-    const task = await this.taskRepository.findById(id);
-    if (!task) throw new NotFoundException(`Task ${id} not found`);
-    return task;
-  }
-
+  // P2025: record not found (e.g. deleted between requests)
   // P2034: serializable transaction aborted by a concurrent write, client should retry
-  private async withConflictHandling<T>(operation: Promise<T>): Promise<T> {
+  // P2028: transaction could not start or exceeded TX_OPTIONS maxWait/timeout
+  private async withPrismaErrors<T>(
+    operation: Promise<T>,
+    id?: string,
+  ): Promise<T> {
     try {
       return await operation;
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2034'
-      ) {
-        throw new ConflictException(
-          'Task order changed concurrently, please retry',
-        );
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        switch (error.code) {
+          case 'P2025':
+            throw new NotFoundException(`Task ${id} not found`);
+          case 'P2034':
+            throw new ConflictException(
+              'Task order changed concurrently, please retry',
+            );
+          case 'P2028':
+            throw new ServiceUnavailableException(
+              'Database is busy, please retry',
+            );
+        }
       }
       throw error;
     }

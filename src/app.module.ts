@@ -2,11 +2,12 @@ import { Module, ValidationPipe } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AppConfigModule } from './lib/config/app-config.module';
 import { PrismaModule } from './lib/database/prisma.module';
 import { TaskModule } from './module/task/task.module';
 
 @Module({
-  imports: [PrismaModule, TaskModule],
+  imports: [AppConfigModule, PrismaModule, TaskModule],
   controllers: [AppController],
   providers: [
     AppService,
