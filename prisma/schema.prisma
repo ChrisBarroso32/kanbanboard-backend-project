@@ -43,3 +43,17 @@ model Task {
   @@index([priority], map: "idx_tasks_priority")
   @@map("tasks")
 }
+
+// Copia de una tarea DONE archivada: conserva el UUID original y no se
+// restaura al tablero. `id` y `updatedAt` se copian tal cual (sin default).
+model ArchivedTask {
+  id          String    @id @db.Uuid
+  title       String    @db.VarChar(255)
+  description String?
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamptz(6)
+  archivedAt  DateTime  @default(now()) @map("archived_at") @db.Timestamptz(6)
+
+  @@index([archivedAt(sort: Desc)], map: "idx_archived_tasks_archived_at")
+  @@map("archived_tasks")
+}

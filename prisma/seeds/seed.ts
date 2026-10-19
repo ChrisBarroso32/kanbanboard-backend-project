@@ -1,10 +1,10 @@
 import { Logger, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { Prisma } from '../src/generated/prisma/client';
-import { TaskPriority, TaskStatus } from '../src/generated/prisma/enums';
-import { AppConfigModule } from '../src/lib/config/app-config.module';
-import { PrismaModule } from '../src/lib/database/prisma.module';
-import { PrismaService } from '../src/lib/database/prisma.service';
+import { Prisma } from '../../src/generated/prisma/client';
+import { TaskPriority, TaskStatus } from '../../src/generated/prisma/enums';
+import { AppConfigModule } from '../../src/lib/config/app-config.module';
+import { PrismaModule } from '../../src/lib/database/prisma.module';
+import { PrismaService } from '../../src/lib/database/prisma.service';
 
 // Only the infrastructure the seed needs: env config + Prisma.
 @Module({ imports: [AppConfigModule, PrismaModule] })
